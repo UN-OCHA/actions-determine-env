@@ -1,52 +1,32 @@
 const core = require('@actions/core');
-const semanticRelease = require('semantic-release');
+const path = require('path');
 
 /**
- * Run semantic-release.
+ * Run determine-env.
  *
- * @see https://github.com/semantic-release/semantic-release/blob/master/docs/developer-guide/js-api.md
- * @see https://github.com/semantic-release/semantic-release/blob/master/docs/usage/configuration.md#options
+ * Basically, set an environment variable that we can use as NODE_ENV later
+ * on to distinguish between production and non-production.
  */
 async function run() {
-  const branch = core.getInput('branch', { required: false }) || 'master';
-  const result = await semanticRelease({ branch });
+  const branch_production = core.getInput('branch_production', { required: false }) || 'master';
 
-  if (!result) {
-    core.debug('No release published');
+  // What did we just checkout?
+  let ref = process.env['GITHUB_REF'];
+  let branch = path.basename(ref);
 
-    // set outputs
-    core.exportVariable('NEW_RELEASE_PUBLISHED', 'false');
-    core.setOutput('new-release-published', 'false');
-    return;
+  // This one we'll return.
+  let env
+
+  if (branch == branch_production) {            // On the nominated prod branch.
+    env = 'production';
+  } else if (branch.indexOf('/tags') > -1) {    // Dale made a tag!
+    env = 'production';
+  } else {                                      // Wherever you go, there you are.
+    env = branch
   }
 
-  const { lastRelease, nextRelease, commits } = result;
-
-  core.debug(
-    `Published ${nextRelease.type} release version ${nextRelease.version} containing ${commits.length} commits.`,
-  );
-
-  if (lastRelease.version) {
-    core.debug(`The last release was "${lastRelease.version}".`);
-  }
-
-  // outputs
-  const { version } = nextRelease;
-  const major = version.split('.')[0];
-  const minor = version.split('.')[1];
-  const patch = version.split('.')[2];
-
-  // set outputs
-  core.exportVariable('NEW_RELEASE_PUBLISHED', 'true');
-  core.exportVariable('RELEASE_VERSION', version);
-  core.exportVariable('RELEASE_MAJOR', major);
-  core.exportVariable('RELEASE_MINOR', minor);
-  core.exportVariable('RELEASE_PATCH', patch);
-  core.setOutput('new-release-published', 'true');
-  core.setOutput('release-version', version);
-  core.setOutput('release-major', major);
-  core.setOutput('release-minor', minor);
-  core.setOutput('release-patch', patch);
+  core.exportVariable('BRANCH_ENVIRONMENT', env);
+  core.setOutput('branch_environment', env);
 }
 
 run().catch(core.setFailed);
