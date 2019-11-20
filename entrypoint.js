@@ -19,7 +19,7 @@ async function run() {
 
   if (branch == branch_production) {            // On the nominated prod branch.
     env = 'production';
-  } else if (branch.indexOf('/tags') > -1) {    // Dale made a tag!
+  } else if (ref.indexOf('/tags') > -1) {       // Dale made a tag!
     env = 'production';
   } else {                                      // Wherever you go, there you are.
     env = branch
